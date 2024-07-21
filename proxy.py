@@ -110,7 +110,7 @@ class ProxyGenerator:
                 self.path_manager.slow_proxy_rectilinear_dir_path, sequence
             )
             proxy_equirect_sequence_dir_path = os.path.join(
-                self.path_manager.slow_proxy_rectilinear_dir_path, sequence
+                self.path_manager.slow_proxy_equirect_dir_path, sequence
             )
 
             if not os.path.exists(proxy_rectilinear_sequence_dir_path):

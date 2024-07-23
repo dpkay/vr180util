@@ -7,7 +7,7 @@ from tkinter import ttk
 from path import PathManager, FilesystemContext
 from resolve import ResolveContext, ResolveUpdater
 from proxy import ProxyGenerator
-
+from motion import MotionMagnitudeGenerator
 
 class AppDelegate:
     def __init__(self):
@@ -22,10 +22,12 @@ class AppDelegate:
             self.resolve_context, self.filesystem_context
         )
         self.proxy_generator = ProxyGenerator(self.path_manager)
+        self.motion_magnitude_wav_generator = MotionMagnitudeGenerator(self.path_manager)
 
-    def generate_proxies(self):
-        print("Checking for new proxies to be generated...")
+    def generate_derived_files(self):
+        print("Checking for new derived files to be generated...")
         self.proxy_generator.generate_proxies()
+        self.motion_magnitude_wav_generator.generate_motion_wavs()
 
     def link_rectilinear_proxies(self):
         self.resolve_updater.LinkProxyForAllMediaPoolItemsInCurrentTimeline(
@@ -48,14 +50,15 @@ class MyApp(tk.Tk):
         ttk.Button(self, text="Button 2", command=self.button2_click).pack(pady=10)
         ttk.Button(self, text="Exit", command=self.quit).pack(pady=10)
 
-        self.after(5000, self.generate_proxies)
+        #self.after(5000, self.generate_proxies)
+        self.generate_derived_files()
 
     def button2_click(self):
         print("Button 2 clicked!")
 
-    def generate_proxies(self):
-        self.delegate.generate_proxies()
-        self.after(5000, self.generate_proxies)
+    def generate_derived_files(self):
+        self.delegate.generate_derived_files()
+        self.after(5000, self.generate_derived_files)
 
 
 if __name__ == "__main__":

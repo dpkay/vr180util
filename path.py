@@ -4,6 +4,7 @@ import os
 INPUT_EQUIRECT_DIR_NAME = "020_equirect_clog3"
 PROXY_RECTILINEAR_DIR_NAME = "032_rectilinear_bt709_1080p_h264"
 PROXY_EQUIRECT_DIR_NAME = "033_equirect_clog3_2k_h264"
+MOTION_MAGNITUDE_DIR_NAME = "042_motion_magnitude_wav"
 
 
 class PathManager:
@@ -14,6 +15,7 @@ class PathManager:
         self.input_dir_path = os.path.join(self.slow_work_dir_path, INPUT_EQUIRECT_DIR_NAME)
         self.slow_proxy_rectilinear_dir_path = os.path.join(self.slow_work_dir_path, PROXY_RECTILINEAR_DIR_NAME)
         self.slow_proxy_equirect_dir_path = os.path.join(self.slow_work_dir_path, PROXY_EQUIRECT_DIR_NAME)
+        self.motion_magnitude_wav_dir_path = os.path.join(self.slow_work_dir_path, MOTION_MAGNITUDE_DIR_NAME)
 
 
 class FilesystemContext:

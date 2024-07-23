@@ -1,3 +1,4 @@
+import os
 import math
 import cv2
 import numpy as np
@@ -5,8 +6,9 @@ import wave
 import struct
 
 
-class MotionMagnitudeAnnotator:
-    def __init__(self):
+class MotionMagnitudeGenerator:
+    def __init__(self, path_manager):
+        self.path_manager = path_manager
         self.sample_rate = 44100  # Standard for CD-quality audio
         self.frames_per_second = 59.94
 
@@ -16,6 +18,8 @@ class MotionMagnitudeAnnotator:
         Args:
             video_path: Path to the MP4 video file.
         """
+        MIN_FEATURES = 70
+        UNTRACKABLE_MOTION_MAGNITUDE = 100.0
 
         motion_magnitudes = []
 
@@ -27,7 +31,7 @@ class MotionMagnitudeAnnotator:
 
         # Feature detection and description (you can experiment with different methods)
         feature_params = dict(
-            maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7
+            maxCorners=300, qualityLevel=0.3, minDistance=7, blockSize=7
         )
         prev_points = cv2.goodFeaturesToTrack(
             prev_frame_gray, mask=None, **feature_params
@@ -54,20 +58,41 @@ class MotionMagnitudeAnnotator:
             good_new = next_points[status == 1]
             good_old = prev_points[status == 1]
 
+
+
+            print(len(good_new))
+            #print(len(good_old))
+
+
             # Estimate the transformation (in this case, translation)
-            transformation, inliers = cv2.estimateAffinePartial2D(good_old, good_new)
             # print(transformation)
-            delta = transformation[:, 2]  # Extract x/y translation values
-            motion_magnitude = np.linalg.norm(delta)
-            motion_magnitudes.append(motion_magnitude.item())
+            if len(good_new)>=3:
+                transformation, inliers = cv2.estimateAffinePartial2D(good_old, good_new)
+                delta = transformation[:, 2]  # Extract x/y translation values
+                motion_magnitude = np.linalg.norm(delta).item()
+            else:
+                # Handle case with 1 feature
+                motion_magnitude = UNTRACKABLE_MOTION_MAGNITUDE
+                
+            motion_magnitudes.append(motion_magnitude)
 
             print(
-                f"Frame {frame_num}: Camera movement (dx, dy) = ({delta[0]:.2f}, {delta[1]:.2f}) -- {motion_magnitude}"
+                f"Frame {frame_num} ({len(good_new)} features): Camera movement (dx, dy) = ({delta[0]:.2f}, {delta[1]:.2f}) -- {motion_magnitude}"
             )
+
+            if len(good_new) < MIN_FEATURES:
+                feature_params = dict(
+                    maxCorners=100, qualityLevel=0.3, minDistance=7, blockSize=7
+                )
+                prev_points = cv2.goodFeaturesToTrack(
+                    prev_frame_gray, mask=None, **feature_params
+                )
+            else:
+                prev_points = good_new.reshape(-1, 1, 2)
 
             # Update for next iteration
             prev_frame_gray = frame_gray.copy()
-            prev_points = good_new.reshape(-1, 1, 2)
+            
 
         cap.release()
         return motion_magnitudes
@@ -83,12 +108,14 @@ class MotionMagnitudeAnnotator:
             for sample in values:
                 wave_file.writeframes(struct.pack("<h", int(sample)))
 
-    def compute_motion_wav_from_input_mp4(self, input_mp4_path, output_wav_path):
+    def generate_motion_wav_from_input_mp4(self, input_mp4_path, output_wav_path):
+        print(f"Generating Motion WAV: from {input_mp4_path} to {output_wav_path}")
         motion_magnitudes = self.estimate_motion_magnitude_per_frame(
-            input_mp4_path, max_num_frames=300
+            input_mp4_path, max_num_frames=None
         )
 
         # Generate WAV signal
+        max_amplitude = 32000
         amplitude_factor = 1000
         total_duration = len(motion_magnitudes) / self.frames_per_second  # Seconds
         frequency = 440  # A4 note
@@ -104,15 +131,85 @@ class MotionMagnitudeAnnotator:
             range_end = math.floor(
                 float(i + 1) * self.sample_rate / self.frames_per_second
             )
+            amplified_magnitude = min(
+                max_amplitude, motion_magnitude * amplitude_factor
+            )
+            # amplified_magnitude = 99999999
             print(i, range_start, range_end, motion_magnitude)
-            audio[range_start:range_end] *= motion_magnitude * amplitude_factor
+            audio[range_start:range_end] *= amplified_magnitude
 
         # Write WAV to file
         self.write_values_to_wav(output_wav_path, audio, self.sample_rate)
 
+    def generate_motion_wavs(self):
+        mp4_path = r"g:\vr180_work\032_rectilinear_bt709_1080p_h264\20240630\A005C103_240630BZ_CANON.vr.MP4"  # Replace with your video file path
+        wav_path = "sine_wave8.wav"
+        #self.generate_motion_wav_from_input_mp4(mp4_path, wav_path)
 
-mp4_path = r"G:\vr180_work\032_rectilinear_bt709_1080p_h264\20240716\A010C169_240716BS_CANON.vr.MP4"  # Replace with your video file path
-wav_path = "sine_wave7.wav"
+        #return
 
-mma = MotionMagnitudeAnnotator()
-mma.compute_motion_wav_from_input_mp4(mp4_path, wav_path)
+        input_dir_sequences = os.listdir(
+            self.path_manager.slow_proxy_rectilinear_dir_path
+        )
+
+        for sequence in input_dir_sequences:
+            input_sequence_dir_path = os.path.join(
+                self.path_manager.slow_proxy_rectilinear_dir_path, sequence
+            )
+            motion_magnitude_wav_sequence_dir_path = os.path.join(
+                self.path_manager.motion_magnitude_wav_dir_path, sequence
+            )
+
+            if not os.path.exists(motion_magnitude_wav_sequence_dir_path):
+                os.makedirs(motion_magnitude_wav_sequence_dir_path)
+
+            input_sequence_filename_stems = set(
+                os.path.splitext(x)[0]
+                for x in os.listdir(input_sequence_dir_path)
+                if x.lower().endswith(".mp4")
+            )
+
+            motion_magnitude_wav_sequence_filename_stems = set(
+                os.path.splitext(x)[0]
+                for x in os.listdir(motion_magnitude_wav_sequence_dir_path)
+            )
+            filename_stems_to_process = (
+                input_sequence_filename_stems
+                - motion_magnitude_wav_sequence_filename_stems
+            )
+
+            print(
+                f"input ({len(input_sequence_filename_stems)}): {input_sequence_filename_stems}"
+            )
+            print(
+                f"motion wav ({len(motion_magnitude_wav_sequence_filename_stems)}): {motion_magnitude_wav_sequence_filename_stems}"
+            )
+            print(
+                f"to process ({len(filename_stems_to_process)}): {filename_stems_to_process}"
+            )
+
+            print(f"Processing {len(filename_stems_to_process)} input files...")
+
+            for stem in filename_stems_to_process:
+                input_path = os.path.abspath(
+                    os.path.join(input_sequence_dir_path, f"{stem}.MP4")
+                )
+                motion_magnitude_wav_path = os.path.abspath(
+                    os.path.join(motion_magnitude_wav_sequence_dir_path, f"{stem}.wav")
+                )
+                # print(input_path, motion_magnitude_wav_path)
+                try:
+                    self.generate_motion_wav_from_input_mp4(
+                        input_path, motion_magnitude_wav_path
+                    )
+                except Exception as e:
+                    print("Error generating motion WAV: ", e)
+                    if os.path.exists(motion_magnitude_wav_path):
+                        os.remove(motion_magnitude_wav_path)
+
+
+# mp4_path = r"G:\vr180_work\032_rectilinear_bt709_1080p_h264\20240716\A010C169_240716BS_CANON.vr.MP4"  # Replace with your video file path
+# wav_path = "sine_wave7.wav"
+
+# mma = MotionMagnitudeGenerator()
+# mma.generate_motion_wav_from_input_mp4(mp4_path, wav_path)

@@ -20,7 +20,7 @@ class PathManager:
 
 class FilesystemContext:
     def __init__(self, path_manager):
-        self.path_manager = path_manager.slow_work_dir_path
+        self.path_manager = path_manager
 
         # TODO: move all these to path manager
         #self.root_folder = self.path_manager
@@ -37,10 +37,11 @@ class FilesystemContext:
         #PROXY_EQUIRECT_CLOG3_DIR_NAME
 
     def GetCLog3SequenceNames(self):
-        return os.listdir(self.equirect_clog3_root_path)
+        return os.listdir(self.path_manager.input_dir_path)
 
     def GetCLog3SequencePath(self, sequence_name):
-        return os.path.join(self.equirect_clog3_root_path, sequence_name)
+        return os.path.join(self.path_manager.input_dir_path, sequence_name)
 
     def GetCLog3ShotNamesForSequence(self, sequence_name):
-        return os.listdir(self.GetCLog3SequencePath(sequence_name))
+        #return os.listdir(self.GetCLog3SequencePath(sequence_name))
+        return [x for x in os.listdir(self.GetCLog3SequencePath(sequence_name)) if x.lower().endswith(".mp4")]

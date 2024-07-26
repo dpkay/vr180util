@@ -9,6 +9,7 @@ from resolve import ResolveContext, ResolveUpdater
 from proxy import ProxyGenerator
 from motion import MotionMagnitudeGenerator
 
+
 class AppDelegate:
     def __init__(self):
         SLOW_WORK_DIR = r"g:\vr180_work"
@@ -22,7 +23,9 @@ class AppDelegate:
             self.resolve_context, self.filesystem_context
         )
         self.proxy_generator = ProxyGenerator(self.path_manager)
-        self.motion_magnitude_wav_generator = MotionMagnitudeGenerator(self.path_manager)
+        self.motion_magnitude_wav_generator = MotionMagnitudeGenerator(
+            self.path_manager
+        )
 
     def generate_derived_files(self):
         print("Checking for new derived files to be generated...")
@@ -34,9 +37,11 @@ class AppDelegate:
             self.path_manager.slow_proxy_rectilinear_dir_path
         )
 
+    def create_missing_sequences_and_shots_in_resolve(self):
+        self.resolve_updater.CreateMissingSequencesAndShotsInResolve()
+
 
 class MyApp(tk.Tk):
-
     def __init__(self, delegate):
         self.delegate = delegate
         super().__init__()
@@ -47,10 +52,14 @@ class MyApp(tk.Tk):
             text="Link rectilinear proxies for current timeline",
             command=self.delegate.link_rectilinear_proxies,
         ).pack(pady=10)
-        ttk.Button(self, text="Button 2", command=self.button2_click).pack(pady=10)
+        ttk.Button(
+            self,
+            text="Create Missing Sequences And Shots In Resolve",
+            command=self.delegate.create_missing_sequences_and_shots_in_resolve,
+        ).pack(pady=10)
         ttk.Button(self, text="Exit", command=self.quit).pack(pady=10)
 
-        #self.after(5000, self.generate_proxies)
+        # self.after(5000, self.generate_proxies)
         self.generate_derived_files()
 
     def button2_click(self):

@@ -51,28 +51,34 @@ class MotionMagnitudeGenerator:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # Track features using Lucas-Kanade optical flow
-            next_points, status, error = cv2.calcOpticalFlowPyrLK(
-                prev_frame_gray, frame_gray, prev_points, None, **lk_params
-            )
+            try:
+                next_points, status, error = cv2.calcOpticalFlowPyrLK(
+                    prev_frame_gray, frame_gray, prev_points, None, **lk_params
+                )
 
-            good_new = next_points[status == 1]
-            good_old = prev_points[status == 1]
-
-
-
-            print(len(good_new))
-            #print(len(good_old))
+                good_new = next_points[status == 1]
+                good_old = prev_points[status == 1]
 
 
-            # Estimate the transformation (in this case, translation)
-            # print(transformation)
-            if len(good_new)>=3:
-                transformation, inliers = cv2.estimateAffinePartial2D(good_old, good_new)
-                delta = transformation[:, 2]  # Extract x/y translation values
-                motion_magnitude = np.linalg.norm(delta).item()
-            else:
-                # Handle case with 1 feature
+
+                print(len(good_new))
+                #print(len(good_old))
+
+
+                # Estimate the transformation (in this case, translation)
+                # print(transformation)
+                if len(good_new)>=3:
+                    transformation, inliers = cv2.estimateAffinePartial2D(good_old, good_new)
+                    delta = transformation[:, 2]  # Extract x/y translation values
+                    motion_magnitude = np.linalg.norm(delta).item()
+                else:
+                    # Handle case with 1 feature
+                    motion_magnitude = UNTRACKABLE_MOTION_MAGNITUDE
+            except:
+                # sometimes calcOpticalFlowPyrLK will just fail like this:
+                # OpenCV(4.10.0) D:\a\opencv-python\opencv-python\opencv\modules\video\src\lkpyramid.cpp:1260: error: (-215:Assertion failed) (npoints = prevPtsMat.checkVector(2, CV_32F, true)) >= 0 in function 'cv::`anonymous-namespace'::SparsePyrLKOpticalFlowImpl::calc'
                 motion_magnitude = UNTRACKABLE_MOTION_MAGNITUDE
+                good_new = []
                 
             motion_magnitudes.append(motion_magnitude)
 
@@ -142,8 +148,8 @@ class MotionMagnitudeGenerator:
         self.write_values_to_wav(output_wav_path, audio, self.sample_rate)
 
     def generate_motion_wavs(self):
-        mp4_path = r"g:\vr180_work\032_rectilinear_bt709_1080p_h264\20240630\A005C103_240630BZ_CANON.vr.MP4"  # Replace with your video file path
-        wav_path = "sine_wave8.wav"
+        #mp4_path = r"g:\vr180_work\032_rectilinear_bt709_1080p_h264\20240630\A005C103_240630BZ_CANON.vr.MP4"  # Replace with your video file path
+        #wav_path = "sine_wave8.wav"
         #self.generate_motion_wav_from_input_mp4(mp4_path, wav_path)
 
         #return

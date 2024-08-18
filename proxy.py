@@ -51,7 +51,8 @@ class ProxyGenerator:
         ]
         filters += ["scale=1920:1080"]
         filters += ["format=yuv420p"]
-        filters += ["lut3d=CinemaGamut_CanonLog3-to-BT709_WideDR_33_FF_Ver.2.0.cube"]
+        #filters += ["lut3d=CinemaGamut_CanonLog3-to-BT709_WideDR_33_FF_Ver.2.0.cube"]
+        filters += ["lut3d=CinemaGamut_CanonLog2-to-BT709_WideDR_65_FF_Ver.2.0.cube"]
         filter_chain_strings.append(
             "[rectilinear_bt709_1080p]"
             + ",".join(filters)
@@ -86,20 +87,20 @@ class ProxyGenerator:
             "-map",
             "[rectilinear_bt709_1080p_out]",
             "-map",
-            "0:a",
+            "0:a?",
             rectilinear_output_path,
         ]
         command += [
             "-map",
             "[equirect_clog3_2k_out]",
             "-map",
-            "0:a",
+            "0:a?",
             equirect_output_path,
         ]
         print(command)
         subprocess.run(command, capture_output=False, text=True)
 
-
+ 
     def generate_proxies(self):    
         input_dir_sequences = os.listdir(self.path_manager.input_dir_path)
 

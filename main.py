@@ -37,6 +37,11 @@ class AppDelegate:
             self.path_manager.slow_proxy_rectilinear_dir_path
         )
 
+    def link_equirect_proxies(self):
+        self.resolve_updater.LinkProxyForAllMediaPoolItemsInCurrentTimeline(
+            self.path_manager.slow_proxy_equirect_dir_path
+        )        
+
     def create_missing_sequences_and_shots_in_resolve(self):
         self.resolve_updater.CreateMissingSequencesAndShotsInResolve()
 
@@ -51,6 +56,11 @@ class MyApp(tk.Tk):
             self,
             text="Link rectilinear proxies for current timeline",
             command=self.delegate.link_rectilinear_proxies,
+        ).pack(pady=10)
+        ttk.Button(
+            self,
+            text="Link equirect proxies for current timeline",
+            command=self.delegate.link_equirect_proxies,
         ).pack(pady=10)
         ttk.Button(
             self,
